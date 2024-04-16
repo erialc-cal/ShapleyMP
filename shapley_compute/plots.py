@@ -21,5 +21,5 @@ def visualise_minipatch(in_mp_obs, in_mp_feature, color_palette = palette, type=
     plt.title('Patch selection frequency')
 
 
-def bar(shap_values):
+# waterfall, beeswarm, barplots
     

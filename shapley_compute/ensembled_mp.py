@@ -10,29 +10,14 @@ import pandas as pd
 from scipy.stats import norm
 import seaborn as sns
 from scipy.special import binom 
+from itertools import combinations
 
-
-def mp_shapley(X_arr, res):
-    new_shap = np.zeros((X_arr.shape))
-    for i in range(X_arr.shape[1]): 
-        new_shap[:,i] = shapley_mp(i, res)[:,0]
+def mp_shapley(Xi, res):
+    new_shap = np.zeros((Xi.shape))
+    for i in range(Xi.shape[1]): 
+        new_shap[:,i] = shapley_mp(i, res)
     return new_shap
 
-def mp_value(feature_subset, pred, in_mp_obs, in_mp_feature, holdout_feature):
-    ext_subset = list(feature_subset)
-    ext_subset.append(holdout_feature)
-    pred, in_mp_obs, in_mp_feature = res 
-    pred = np.array(pred)
-    selected = np.where(np.any(in_mp_feature[:, ext_subset], axis=1))
-    # print('full',np.mean(pred[selected,:], axis = 1)[0].shape)
-    return np.mean(pred[selected,:], axis = 1)[0]
-
-def mp_value_holdout(feature_subset, pred, in_mp_obs, in_mp_feature, holdout_feature):
-    pred = np.array(pred)
-    feat_wo_target = in_mp_feature[~in_mp_feature[:, holdout_feature]]
-    selected = np.where(np.any(feat_wo_target[:, feature_subset], axis=1)) # gives the k that correspnod
-    # print('holdout',np.mean(pred[selected,:], axis = 1)[0].shape)
-    return np.mean(pred[selected,:], axis = 1)[0]
 
 def shapley_mp(target_feature, res):
     pred, in_mp_obs, in_mp_feature = res
@@ -43,17 +28,37 @@ def shapley_mp(target_feature, res):
     # all_features[i] contains list of all i-uplet of combinations of features
     features_target = [[combo for combo in all_features[i] if target_feature not in combo] for i in range(len(all_features))] # exclude target feature
     diff = []
-    for i in range(m,m+1): # len(features_target)):
-        # skip u where |u| < m
+    for i in range(len(features_target)):
         for j in range(len(features_target[i])):
-            val_diff = 0 
-            feature_subset = features_target[i][j] # u
-            # get all patches who's features are contained in u 
-            phi_left = mp_value(feature_subset, pred, in_mp_obs, in_mp_feature, holdout_feature=target_feature)
-            phi_right = mp_value_holdout(feature_subset, pred,in_mp_obs, in_mp_feature, holdout_feature=target_feature) 
-            val_diff += phi_left - phi_right
-            diff.append(1/binom(d-1,len(feature_subset)) * val_diff)
-    
-    shapley_j = sum(diff)
+        
+            val_diff = np.zeros(pred.shape[1])
+            feature_subset = features_target[i][j]
+            target_indices = np.where(in_mp_feature[:,target_feature])[0] # Get the indices of the rows where the target column is True
+            
+            oh = np.zeros(d, dtype=bool)
+            oh[[feature_subset]] = True # one hot feature subset
+            oh_j = np.zeros(d, dtype=bool)
+            l = list(feature_subset)
+            l.append(target_feature)
+            oh_j[[l]] = True # one hot feature subset + target
+            
+            mask = np.all(in_mp_feature == oh, axis=1) # mask the feature subset 
+            right_indices = np.where(mask)[0] # find matching indices of mask 
+            mask_j = np.all(in_mp_feature == oh_j, axis=1) # mask the feature subset + target
+            left_indices = np.where(mask_j)[0] 
+            
+            if (len(left_indices) ==0) or (len(right_indices)==0) :
+                pass
+            else:
+                augmented_pred = pred[list(left_indices),:,0]
+                # augmented_idx = in_mp_obs[list(left_indices),:]
+                selected_pred = pred[list(right_indices),:,0]
+                # selected_idx = in_mp_obs[list(right_indices),:]
+                phi_right = np.mean(selected_pred) # np.mean(np.array([selected_pred[i,:][selected_idx[i,:]] for i in range(selected_idx.shape[0])]),axis=0)
+                phi_left = np.mean(augmented_pred) # np.mean(np.array([augmented_pred[i,:][augmented_idx[i,:]] for i in range(augmented_idx.shape[0])]),axis=0)
+                                         
+                val_diff += phi_left - phi_right
+        diff.append(1/binom(d-1,len(feature_subset)) * val_diff)
+    shapley_j = 1/d*sum(diff)
 
     return shapley_j 

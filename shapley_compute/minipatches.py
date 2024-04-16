@@ -16,24 +16,34 @@ import pandas as pd
 from scipy.stats import norm
 import seaborn as sns
 
-def get_minipatch(X_arr,y_arr, x_ratio=0.2, y_ratio=0.2):
-    """ Generate a minipatch from a dataset with covariates X, label/response y of size controled by ratio parameters
+palette = sns.color_palette([
+    "#7fbf7b",  # Light Green
+    "#af8dc3",  # Lavender
+    "#e7d4e8",  # Light Purple
+    "#fdc086",  # Light Orange
+    "#ff9896",  # Light Red
+    "#c5b0d5"   # Light Blue
+])
+def get_minipatch(X_arr,y_arr, x_ratio=0.02):
+    """ Generate a minipatch from a dataset with covariates X, with obs size controled by ratio parameters
     Input: 
         X_arr
         y_arr
         x_ratio
-        y_ratio
     -------
     Outputs: 
         x_mp
         y_mp
         idx_I
         idx_F """
-# get a minipatch of size (n, m)
-    N = len(X_arr)
-    M = len(X_arr[0])
+    N = X_arr.shape[0]
+    M = X_arr.shape[1]
+    
+    # get a random feature size
+    m =  np.random.choice([i for i in range(1,M)])
+    assert int(np.round(x_ratio * N)) > m # verify that enough observations are sampled
     n = int(np.round(x_ratio * N))
-    m = int(np.round(y_ratio * M))
+    
     r = np.random.RandomState()
     ## index of minipatch
     idx_I = np.sort(r.choice(N, size=n, replace=False)) # uniform sampling of subset of observations
@@ -43,15 +53,47 @@ def get_minipatch(X_arr,y_arr, x_ratio=0.2, y_ratio=0.2):
     y_mp = y_arr[np.ix_(idx_I)]
     return x_mp, y_mp, idx_I, idx_F
 
-
-def minipatch_regression(X_arr, y_arr, model, x_ratio=0.2, y_ratio=0.2, B=10):
+def minipatch_regression(X_arr, y_arr, Xi, model, x_ratio, B=1000, plot_prop=False):
+    """ Fit the minipatch ensemble estimator on the training data and predict on test set Xi
+    Input:
+        X_arr: training predictors
+        y_arr: training set response
+        Xi: test set
+        model: chosen model for regression
+        x_ratio: ratio of observation to sample from
+        B: number of replicates
+        plot_prop: if True, plots the minipatch feature coverage histogram
+    -------
+    Outputs: 
+        [np.array, np.array, np.array]: prediction on test set, boolean dictionary of minipatch observations, boolean dictionary of minipatch features
+    """
     pred = []
+    mp_feat_size = []
+    N = X_arr.shape[0]
+    M = X_arr.shape[1]
     in_mp_obs, in_mp_feature = np.zeros((B,N),dtype=bool),np.zeros((B,M),dtype=bool)
     for b in range(B):  
-        x_mp, y_mp, idx_I, idx_F = get_minipatch(X_arr, y_arr, x_ratio, y_ratio)
+        x_mp, y_mp, idx_I, idx_F = get_minipatch(X_arr, y_arr, x_ratio)
+        mp_feat_size.append(len(idx_F))
         model.fit(x_mp, y_mp)
-        pred.append(pd.DataFrame(model.predict(np.array(X_test)[:, idx_F])))
+        pred.append(pd.DataFrame(model.predict(np.array(Xi)[:, idx_F])))
         in_mp_obs[b,idx_I] = True # minipatch b 
         in_mp_feature[b,idx_F] = True
+    if plot_prop:
+        plt.hist(mp_feat_size)
+        plt.suptitle('Minipatch length histogram')
+    
     return [np.array(pred),in_mp_obs,in_mp_feature]
 
+def visualise_minipatch(in_mp_obs, in_mp_feature, color_palette = palette, type='sorted'):
+    
+    B = in_mp_obs.shape[0]
+    matrix = np.zeros((in_mp_obs.shape[1],in_mp_feature.shape[1]))
+    for i in range(B):
+        matrix += (in_mp_obs[i][:, np.newaxis] & in_mp_feature[i]).astype(int)
+    df = pd.DataFrame(matrix, columns = X.columns)
+    if type =='sorted':
+        sns.heatmap(df[df.mean().sort_values().index].sort_values(by=df[df.mean().sort_values().index].columns[-1], axis=0), cmap=palette)
+    else:
+        sns.heatmap(df, cmap=palette)
+    plt.title('Patch selection frequency')
