@@ -12,9 +12,9 @@ import seaborn as sns
 from scipy.special import binom 
 from itertools import combinations
 
-def mp_shapley(Xi, res):
-    new_shap = np.zeros((Xi.shape))
-    for i in range(Xi.shape[1]): 
+def mp_shapley(res):
+    new_shap = np.zeros((res[2].shape[1]))
+    for i in range(res[3].shape[1]): 
         new_shap[:,i] = shapley_mp(i, res)
     return new_shap
 
@@ -90,6 +90,6 @@ def shapley_mp(target_feature, res):
             mu_k = np.mean(pred[mask,:,0],axis=0)
             mu_j = np.mean(pred[mask_j,:,0], axis=0)
         val_diff = mu_j - mu_k
-        diff.append(dk/binom(dk-1,sum(row)) * val_diff)
-    shapley_j = sum(diff)
+        diff.append(1/binom(dk-1,sum(row)) * val_diff)
+    shapley_j = 1/dk*sum(diff)
     return shapley_j

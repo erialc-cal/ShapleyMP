@@ -24,7 +24,7 @@ palette = sns.color_palette([
     "#ff9896",  # Light Red
     "#c5b0d5"   # Light Blue
 ])
-def get_minipatch(X_arr,y_arr, x_ratio=0.02):
+def get_minipatch(X_arr,y_arr, x_ratio=0.02, seed=None):
     """ Generate a minipatch from a dataset with covariates X, with obs size controled by ratio parameters
     Input: 
         X_arr
@@ -43,9 +43,12 @@ def get_minipatch(X_arr,y_arr, x_ratio=0.02):
     m =  np.random.choice([i for i in range(1,M)])
     assert int(np.round(x_ratio * N)) > m # verify that enough observations are sampled
     n = int(np.round(x_ratio * N))
-    
-    r = np.random.RandomState()
+    if seed==None:
+        r = np.random.RandomState()
+    else:
+        r = np.random.RandomState(seed)
     ## index of minipatch
+    # print(n, N)
     idx_I = np.sort(r.choice(N, size=n, replace=False)) # uniform sampling of subset of observations
     idx_F = np.sort(r.choice(M, size=m, replace=False)) # uniform sampling of subset of features
     ## record which obs/features are subsampled 
@@ -85,7 +88,7 @@ def minipatch_regression(X_arr, y_arr, Xi, model, x_ratio, B=1000, plot_prop=Fal
     
     return [np.array(pred),in_mp_obs,in_mp_feature]
 
-def minipatch_regression_loo(X_arr, y_arr, model, x_ratio, B=1000, plot_prop=False):
+def minipatch_regression_loo(X_arr, y_arr, model, x_ratio, B=1000, r=None, plot_prop=False):
     """ Fit the minipatch ensemble estimator on the training data and predict on leave-one-out Xi
     Input:
         X_arr: training predictors
@@ -105,7 +108,7 @@ def minipatch_regression_loo(X_arr, y_arr, model, x_ratio, B=1000, plot_prop=Fal
     M = X_arr.shape[1]
     in_mp_obs, in_mp_loo, in_mp_feature = np.zeros((B,N),dtype=bool), np.zeros((B,N),dtype=bool), np.zeros((B,M),dtype=bool)
     for b in range(B):  
-        x_mp, y_mp, idx_I, idx_F = get_minipatch(X_arr, y_arr, x_ratio)
+        x_mp, y_mp, idx_I, idx_F = get_minipatch(X_arr, y_arr, x_ratio, r)
         mp_feat_size.append(len(idx_F))
         model.fit(x_mp[:-1,:], y_mp[:-1]) # leave-one-out
         Xi = x_mp[-1,:]
