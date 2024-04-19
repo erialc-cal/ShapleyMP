@@ -24,7 +24,7 @@ palette = sns.color_palette([
     "#ff9896",  # Light Red
     "#c5b0d5"   # Light Blue
 ])
-def get_minipatch(X_arr,y_arr, x_ratio=0.02, seed=None):
+def get_minipatch(X_arr,y_arr, x_ratio, seed=None):
     """ Generate a minipatch from a dataset with covariates X, with obs size controled by ratio parameters
     Input: 
         X_arr
