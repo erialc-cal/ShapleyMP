@@ -88,39 +88,6 @@ def minipatch_regression(X_arr, y_arr, Xi, model, x_ratio, B=1000, plot_prop=Fal
     
     return [np.array(pred),in_mp_obs,in_mp_feature]
 
-def minipatch_regression_loo(X_arr, y_arr, model, x_ratio, B=1000, r=None, plot_prop=False):
-    """ Fit the minipatch ensemble estimator on the training data and predict on leave-one-out Xi
-    Input:
-        X_arr: training predictors
-        y_arr: training set response
-        Xi: test set
-        model: chosen model for regression
-        x_ratio: ratio of observation to sample from
-        B: number of replicates
-        plot_prop: if True, plots the minipatch feature coverage histogram
-    -------
-    Outputs: 
-        [np.array, np.array, np.array]: prediction on test set, boolean dictionary of minipatch observations, boolean dictionary of minipatch features
-    """
-    pred = []
-    mp_feat_size = []
-    N = X_arr.shape[0]
-    M = X_arr.shape[1]
-    in_mp_obs, in_mp_loo, in_mp_feature = np.zeros((B,N),dtype=bool), np.zeros((B,N),dtype=bool), np.zeros((B,M),dtype=bool)
-    for b in range(B):  
-        x_mp, y_mp, idx_I, idx_F = get_minipatch(X_arr, y_arr, x_ratio, r)
-        mp_feat_size.append(len(idx_F))
-        model.fit(x_mp[:-1,:], y_mp[:-1]) # leave-one-out
-        Xi = x_mp[-1,:]
-        pred.append(pd.DataFrame(model.predict(Xi.reshape(1,-1))))
-        in_mp_obs[b,idx_I[:-1]] = True # minipatch b train points
-        in_mp_feature[b,idx_F] = True
-        in_mp_loo[b, idx_I[-1]] = True # test point loo
-    if plot_prop:
-        plt.hist(mp_feat_size)
-        plt.suptitle('Minipatch length histogram')
-    
-    return [np.array(pred),in_mp_obs,in_mp_loo, in_mp_feature]
 
 def visualise_minipatch(in_mp_obs, in_mp_feature, color_palette = palette, type='sorted'):
     

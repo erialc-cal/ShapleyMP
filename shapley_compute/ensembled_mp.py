@@ -12,10 +12,7 @@ import seaborn as sns
 from scipy.special import binom 
 from itertools import combinations
 import tqdm
-
-
-def locomp():
-    
+from minipatches import minipatch_regression
 
 def mp_shapley(res):
     new_shap = np.zeros((res[2].shape[1]))
@@ -70,7 +67,7 @@ def naive_shapley_mp(target_feature, res):
 
 
 def shapley_mp(target_feature, res):
-    pred, in_mp_obs, in_mp_loo, in_mp_feature = res
+    pred, in_mp_obs, in_mp_feature = res
     pred = np.array(pred)
     n = np.sum(in_mp_obs, axis=1)[0]
     all_features = np.unique(in_mp_feature,axis=0) # get all features sampled in MPs
@@ -80,7 +77,7 @@ def shapley_mp(target_feature, res):
     d = all_features.shape[0]
     
     diff = []
-    for row in features_target[:2]:
+    for row in features_target:
         val_diff = 0 
         row_j = row.copy()
         row_j[target_feature] = True
@@ -98,3 +95,25 @@ def shapley_mp(target_feature, res):
         diff.append(1/binom(d-1,sum(row)) * val_diff)
     shapley_j = 1/d* sum(diff)
     return shapley_j
+
+
+def loco_error(X, y, model, x_ratio, B):
+    N = len(X)
+    M = len(X[0])
+    Delta = np.zeros((N, M))
+    pred, in_mp_obs, in_mp_feature = minipatch_regression(X, y, X, model, x_ratio, B)
+    batch_size = np.sum(in_mp_obs, axis=1)[0] 
+    for i in tqdm.tqdm(range(N)):
+        indices_without_i = np.where(~in_mp_obs[:, i])[0] # batches without observation i
+        predictions_i = pred[indices_without_i, :, 0] # predictions from batches trained without observation i on obs i (test sets of MP)
+        mu_i = np.mean(predictions_i[:,i]) # average loo prediction of all 'test' out-of-batches 
+        in_mp_feature_i = in_mp_feature[indices_without_i,:] # reduced feature matrix
+        for j in range(M):
+            # error of mu_j - error of mu
+            mu_ij = np.mean(predictions_i[~np.where(in_mp_feature_i[:,j])[0],i]) # prediction without obs j with LOO i 
+            err_j = np.mean(np.abs(y[i] - mu_ij)) # on minipatch without j 
+            err = np.mean(np.abs(y[i] - mu_i)) # on all minipatches
+        
+            Delta[i,j] = err_j - err
+        
+    return Delta
