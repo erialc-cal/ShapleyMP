@@ -70,7 +70,7 @@ def LOCOMP_random(X,Y,n_ratio,B,model, selected_features=[],alpha=0.1,bonf=True)
 
     ###########################
     res= {}
-    res['loco_ci']=inf_z
+    res['loco_ci']=inf_z # [pval1,pval2, left,right]
     res['info']=ress
     res['diff']=diff
     return res    
