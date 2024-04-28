@@ -84,7 +84,7 @@ def minipatch_regression(X_arr, y_arr, Xi, model, x_ratio, B=1000, plot_prop=Fal
         in_mp_feature[b,idx_F] = True
     if plot_prop:
         plt.hist(mp_feat_size)
-        plt.suptitle('Minipatch length histogram')
+        plt.suptitle('Minipatch selected feature length histogram')
     
     return [np.array(pred),in_mp_obs,in_mp_feature]
 

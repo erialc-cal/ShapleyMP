@@ -12,7 +12,7 @@ import numpy.random as r
 from minipatches import get_minipatch
 import numpy as np
 
-def LOCOMP_random(X,Y,n_ratio,B,model, selected_features=[],alpha=0.1,bonf=True):
+def LOCOMP_random(X,Y,n_ratio,B,model, selected_features=[],alpha=0.1,bonf=True, sample_size=20):
     """ LOCOMP for regression but takes random feature patches 
     
     """
@@ -33,8 +33,8 @@ def LOCOMP_random(X,Y,n_ratio,B,model, selected_features=[],alpha=0.1,bonf=True)
     diff= []
     b_keep = pd.DataFrame(~in_mp_obs).apply(lambda i: np.array(i[i].index))
     for i in range(N):
-        sel_2 = np.array(sample(list(b_keep[i]),20))
-        sel_2.shape = (2,10)
+        sel_2 = np.array(sample(list(b_keep[i]),sample_size))
+        sel_2.shape = (2,sample_size//2)
         diff.append(np.square(predictions_train[sel_2[0],i] - predictions_train[sel_2[1],i]).mean())
          ##################################
 
@@ -117,7 +117,7 @@ def ztest(z,alpha,MM=1,bonf_correct=True):
     right = m + q*s/np.sqrt(l)
     return [pval1,pval2, left,right]
 
-def LOCOMPReg(X,Y,n_ratio,m_ratio,B,model, selected_features=[],alpha=0.1,bonf=True):
+def LOCOMPReg(X,Y,n_ratio,m_ratio,B,model, selected_features=[],alpha=0.1,bonf=True, sample_size=20):
 
     N=len(X)
     M = len(X[0])
@@ -136,7 +136,7 @@ def LOCOMPReg(X,Y,n_ratio,m_ratio,B,model, selected_features=[],alpha=0.1,bonf=T
     diff= []
     b_keep = pd.DataFrame(~in_mp_obs).apply(lambda i: np.array(i[i].index))
     for i in range(N):
-        sel_2 = np.array(sample(list(b_keep[i]),20))
+        sel_2 = np.array(sample(list(b_keep[i]),sample_size))
         sel_2.shape = (2,10)
         diff.append(np.square(predictions_train[sel_2[0],i] - predictions_train[sel_2[1],i]).mean())
          ##################################

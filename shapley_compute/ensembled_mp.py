@@ -14,12 +14,11 @@ from itertools import combinations
 import tqdm
 from minipatches import minipatch_regression
 
-def mp_shapley(res):
-    new_shap = np.zeros((res[2].shape[1]))
-    for i in tqdm.tqdm(range(res[3].shape[1])): 
+def mp_shapley(Xi, res):
+    new_shap = np.zeros((Xi.shape))
+    for i in range(Xi.shape[1]): 
         new_shap[:,i] = shapley_mp(i, res)
     return new_shap
-
 
 def naive_shapley_mp(target_feature, res):
     pred, in_mp_obs, in_mp_feature = res
