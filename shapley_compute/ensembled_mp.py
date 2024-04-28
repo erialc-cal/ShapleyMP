@@ -68,11 +68,10 @@ def naive_shapley_mp(target_feature, res):
 def shapley_mp(target_feature, res):
     pred, in_mp_obs, in_mp_feature = res
     pred = np.array(pred)
-    n = np.sum(in_mp_obs, axis=1)[0]
-    all_features = np.unique(in_mp_feature,axis=0) # get all features sampled in MPs
+    
+    all_features = np.unique(in_mp_feature, axis=0) # get all features sampled in MPs
     # all_features is now one-hot encoding of the positions 
     features_target = all_features[np.where(all_features[:,target_feature]==False)] # ohe for the feature subsets that exclude target feature
-    dk = features_target.shape[0]
     d = all_features.shape[0]
     
     diff = []
